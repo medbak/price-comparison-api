@@ -1,0 +1,35 @@
+parameters:
+    api.key: '%env(API_KEY)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Infrastructure/Entity/'
+            - '../src/Kernel.php'
+
+    # Domain Services
+    App\Domain\Repository\ProductPriceRepositoryInterface:
+        alias: App\Infrastructure\Repository\DoctrineProductPriceRepository
+
+    # Infrastructure Services
+    App\Infrastructure\Service\ApiOnePriceFetcher:
+        tags: ['app.price_fetcher']
+
+    App\Infrastructure\Service\ApiTwoPriceFetcher:
+        tags: ['app.price_fetcher']
+
+    # Application Services
+    App\Application\Service\PriceAggregationService:
+        arguments:
+            $priceFetchers: !tagged_iterator app.price_fetcher
+
+    # UI Services
+    App\UI\Security\ApiKeyAuthenticator:
+        arguments:
+            $apiKey: '%api.key%'
