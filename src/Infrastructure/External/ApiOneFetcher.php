@@ -2,12 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Service;
+namespace App\Infrastructure\External;
 
 use App\Domain\Service\PriceFetcherInterface;
 use App\Domain\ValueObject\PriceData;
 
-class ApiOnePriceFetcher implements PriceFetcherInterface
+/**
+ * Legacy API One Fetcher - kept for backward compatibility.
+ *
+ * @deprecated Use DynamicPriceFetcher instead
+ */
+class ApiOneFetcher implements PriceFetcherInterface
 {
     // Mock data - in real implementation this would call external API
     private array $mockData = [
@@ -24,6 +29,14 @@ class ApiOnePriceFetcher implements PriceFetcherInterface
         '789' => [
             ['vendor' => 'ShopA', 'price' => 15.99],
             ['vendor' => 'ShopE', 'price' => 14.99],
+        ],
+        '101' => [
+            ['vendor' => 'ShopA', 'price' => 45.99],
+            ['vendor' => 'ShopF', 'price' => 42.50],
+        ],
+        '102' => [
+            ['vendor' => 'ShopB', 'price' => 28.75],
+            ['vendor' => 'ShopG', 'price' => 30.00],
         ],
     ];
 
@@ -46,6 +59,6 @@ class ApiOnePriceFetcher implements PriceFetcherInterface
 
     public function getName(): string
     {
-        return 'API One';
+        return 'API One (Legacy)';
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Repository;
+namespace App\Infrastructure\Persistence;
 
 use App\Domain\Entity\ProductPrice;
 use App\Domain\Repository\ProductPriceRepositoryInterface;

@@ -26,6 +26,9 @@ class PriceController extends AbstractController
         $this->authenticator = $authenticator;
     }
 
+    /**
+     * @throws \Exception
+     */
     #[Route('/prices', methods: ['GET'])]
     public function getAllPrices(Request $request): JsonResponse
     {
@@ -36,7 +39,7 @@ class PriceController extends AbstractController
         $prices = $this->priceQueryService->getAllLowestPrices();
 
         $data = array_map(
-            fn ($price) => $price->toArray(),
+            fn ($priceResponse) => $priceResponse->toArray(),
             $prices
         );
 
@@ -50,12 +53,12 @@ class PriceController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $price = $this->priceQueryService->getLowestPriceForProduct($id);
+        $priceResponse = $this->priceQueryService->getLowestPriceForProduct($id);
 
-        if (!$price) {
+        if (!$priceResponse) {
             return new JsonResponse(['error' => 'Product not found'], Response::HTTP_NOT_FOUND);
         }
 
-        return new JsonResponse($price->toArray());
+        return new JsonResponse($priceResponse->toArray());
     }
 }

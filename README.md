@@ -7,18 +7,46 @@ A backend service built with PHP 8.3 and Symfony 7 that fetches competitor prici
 This project follows Domain-Driven Design (DDD) and SOLID principles with a clean architecture:
 
 - **Domain Layer**: Contains entities, value objects, and interfaces
-- **Application Layer**: Contains use cases and application services
-- **Infrastructure Layer**: Contains implementations of domain interfaces
-- **UI Layer**: Contains controllers and console commands
+- **Application Layer**: Contains use cases, DTOs, and application services
+- **Infrastructure Layer**: Contains implementations of domain interfaces, caching, and external services
+- **UI Layer**: Contains controllers, console commands, and security
 
 ## Features
 
-- Fetches pricing data from multiple external APIs (simulated)
-- Aggregates and stores the lowest price per product
-- Secure REST API with token-based authentication
-- Console command for price aggregation
-- Docker containerization with MySQL and Redis
-- Clean architecture following DDD principles
+- **Multi-source Price Fetching**: Dynamic API sources stored in database with configurable formats
+- **Intelligent Caching**: Redis-based caching with configurable TTL
+- **Retry Logic**: Exponential backoff for failed API calls
+- **Price Aggregation**: Finds and stores the lowest price per product
+- **Secure REST API**: Token-based authentication with X-API-Key header
+- **Data Fixtures**: Clean separation of test data from business logic
+- **Enhanced Monitoring**: Detailed aggregation results and error tracking
+- **Console Commands**: Rich CLI interface with progress bars and detailed reporting
+
+## Technical Improvements
+
+### ✅ **Caching Layer** (Redis)
+- Product price caching (10 minutes TTL)
+- API response caching (5 minutes TTL)
+- All prices cache (5 minutes TTL)
+- Cache invalidation on updates
+
+### ✅ **Retry Logic**
+- Exponential backoff strategy
+- Configurable retry attempts (default: 3)
+- Specific exception handling
+- Detailed error logging
+
+### ✅ **Data Fixtures**
+- Clean separation from business logic
+- Multiple API sources with different formats
+- Realistic test data structure
+- Easy to extend and modify
+
+### ✅ **Enhanced Architecture**
+- DTO pattern for data transfer
+- Repository pattern for data access
+- Service layer separation
+- Dependency injection throughout
 
 ## Requirements
 
@@ -31,7 +59,7 @@ This project follows Domain-Driven Design (DDD) and SOLID principles with a clea
 ### 1. Clone and Setup
 
 ```bash
-git clone <repo-url>
+git clone <your-repo-url>
 cd price-comparison-api
 ```
 
@@ -59,13 +87,22 @@ docker-compose exec php composer install
 docker-compose exec php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
-### 5. Aggregate Sample Price Data
+### 5. Load Data Fixtures
 
 ```bash
-# Aggregate prices for all sample products (123, 456, 789)
-docker-compose exec php bin/console app:aggregate-prices
+docker-compose exec php bin/console doctrine:fixtures:load --no-interaction
+```
 
-# Or aggregate for a specific product
+### 6. Aggregate Sample Price Data
+
+```bash
+# Aggregate prices for all sample products with detailed output
+docker-compose exec php bin/console app:aggregate-prices --verbose-output
+
+# Clear cache before aggregation
+docker-compose exec php bin/console app:aggregate-prices --clear-cache
+
+# Aggregate for a specific product
 docker-compose exec php bin/console app:aggregate-prices --single=123
 ```
 
@@ -127,27 +164,31 @@ Response:
 ```
 src/
 ├── Application/
-│   └── Service/           # Application services (use cases)
+│   ├── DTO/
+│   │   └── Price/          # Data Transfer Objects
+│   └── Service/            # Application services (use cases)
+├── DataFixtures/           # Database fixtures for test data
 ├── Domain/
-│   ├── Entity/           # Domain entities
-│   ├── Repository/       # Repository interfaces
-│   ├── Service/          # Domain service interfaces
-│   └── ValueObject/      # Value objects
+│   ├── Entity/            # Domain entities
+│   ├── Repository/        # Repository interfaces
+│   ├── Service/           # Domain service interfaces
+│   └── ValueObject/       # Value objects
 ├── Infrastructure/
-│   ├── Entity/           # Doctrine entities
-│   ├── Repository/       # Repository implementations
-│   └── Service/          # External service implementations
+│   ├── Cache/             # Redis caching implementation
+│   ├── Entity/            # Doctrine entities
+│   ├── External/          # External API service implementations
+│   └── Persistence/       # Repository implementations
 └── UI/
-    ├── Command/          # Console commands
-    ├── Controller/       # API controllers
-    └── Security/         # Authentication services
+    ├── Command/           # Console commands
+    ├── Controller/        # API controllers
+    └── Security/          # Authentication services
 ```
 
-## Mock Data Sources
+## Dynamic API Sources
 
-The service simulates two external APIs with different data structures:
+The service now uses configurable API sources stored in the database:
 
-**API One** (ShopA, ShopB, ShopC, ShopD, ShopE):
+**API One Format** (Shopping Sites):
 ```json
 {
   "product_id": "123",
@@ -158,7 +199,7 @@ The service simulates two external APIs with different data structures:
 }
 ```
 
-**API Two** (VendorOne, VendorTwo, VendorThree, VendorFour, VendorFive):
+**API Two Format** (Vendor Network):
 ```json
 {
   "id": "123",
@@ -169,24 +210,64 @@ The service simulates two external APIs with different data structures:
 }
 ```
 
-## Commands
+**API Three Format** (Supplier Network):
+```json
+{
+  "product_id": "123",
+  "suppliers": [
+    { "supplier": "SupplierAlpha", "cost": 18.25 },
+    { "supplier": "SupplierBeta", "cost": 19.75 }
+  ]
+}
+```
 
+## Enhanced Commands
+
+### Price Aggregation Command
 ```bash
-# Aggregate prices for all products
+# Basic aggregation
 docker-compose exec php bin/console app:aggregate-prices
 
-# Aggregate prices for specific products
+# Verbose output with detailed results
+docker-compose exec php bin/console app:aggregate-prices --verbose-output
+
+# Clear cache before running
+docker-compose exec php bin/console app:aggregate-prices --clear-cache
+
+# Process specific products
 docker-compose exec php bin/console app:aggregate-prices 123,456
 
-# Aggregate prices for a single product
-docker-compose exec php bin/console app:aggregate-prices --single=789
+# Single product with detailed output
+docker-compose exec php bin/console app:aggregate-prices --single=789 --verbose-output
+```
 
+### Database Commands
+```bash
 # Clear cache
 docker-compose exec php bin/console cache:clear
+
+# Reload fixtures
+docker-compose exec php bin/console doctrine:fixtures:load --no-interaction
 
 # View logs
 docker-compose logs php
 ```
+
+## Caching Strategy
+
+- **Product Prices**: Cached for 10 minutes
+- **API Responses**: Cached for 5 minutes per source
+- **All Prices Endpoint**: Cached for 5 minutes
+- **Cache Keys**: Structured with prefixes for easy management
+- **Invalidation**: Automatic on price updates
+
+## Retry Strategy
+
+- **Max Retries**: 3 attempts (configurable)
+- **Base Delay**: 1000ms (configurable)
+- **Backoff**: Exponential with 2.0 multiplier
+- **Retryable Exceptions**: RuntimeException, JsonException
+- **Logging**: Detailed retry attempt logging
 
 ## Development
 
@@ -204,11 +285,14 @@ docker-compose exec php vendor/bin/php-cs-fixer fix --verbose
 docker-compose exec php vendor/bin/phpstan analyze
 ```
 
-### Database Management
+### Cache Management
+```bash
+# Clear all cache
+docker-compose exec php bin/console app:aggregate-prices --clear-cache
 
-Access PHPMyAdmin at `http://localhost:4698`:
-- Username: `app`
-- Password: `app`
+# Redis CLI access
+docker-compose exec redis redis-cli
+```
 
 ## Environment Variables
 
@@ -219,18 +303,17 @@ Key environment variables in `.env`:
 - `REDIS_URL`: Redis connection string
 - `APP_ENV`: Application environment (dev/prod)
 
-## Business Logic
+## Performance Features
 
-1. **Price Fetching**: Multiple price fetchers implement the `PriceFetcherInterface`
-2. **Aggregation**: The `PriceAggregationService` collects prices from all sources
-3. **Storage**: Only the lowest price per product is stored in the database
-4. **API**: Secure endpoints expose the aggregated pricing data
+- **Database Indexing**: Optimized queries with proper indexes
+- **Connection Pooling**: Efficient database connection management
+- **Memory Management**: Proper resource cleanup and memory usage
+- **Async Processing**: Ready for background job integration
+- **Monitoring**: Comprehensive logging and error tracking
 
 ## Future Enhancements
 
 - Scheduled price updates via cron jobs
-- Retry logic for failed API calls
-- Enhanced caching with Redis
 - Rate limiting for API endpoints
 - Token authentification system
 - Health check endpoints

@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Infrastructure\Service;
+namespace App\Infrastructure\External;
 
 use App\Domain\Service\PriceFetcherInterface;
 use App\Domain\ValueObject\PriceData;
 
-class ApiTwoPriceFetcher implements PriceFetcherInterface
+/**
+ * Legacy API Two Fetcher - kept for backward compatibility
+ * @deprecated Use DynamicPriceFetcher instead
+ */
+class ApiTwoFetcher implements PriceFetcherInterface
 {
     // Mock data with different structure - in real implementation this would call external API
     private array $mockData = [
@@ -23,6 +27,14 @@ class ApiTwoPriceFetcher implements PriceFetcherInterface
         '789' => [
             ['name' => 'VendorTwo', 'amount' => 16.25],
             ['name' => 'VendorFive', 'amount' => 13.99],
+        ],
+        '101' => [
+            ['name' => 'VendorSix', 'amount' => 44.00],
+            ['name' => 'VendorSeven', 'amount' => 41.75],
+        ],
+        '102' => [
+            ['name' => 'VendorEight', 'amount' => 29.50],
+            ['name' => 'VendorNine', 'amount' => 27.99],
         ],
     ];
 
@@ -45,6 +57,6 @@ class ApiTwoPriceFetcher implements PriceFetcherInterface
 
     public function getName(): string
     {
-        return 'API Two';
+        return 'API Two (Legacy)';
     }
 }

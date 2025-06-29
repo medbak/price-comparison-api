@@ -1,5 +1,6 @@
 parameters:
     api.key: '%env(API_KEY)%'
+    redis.url: '%env(REDIS_URL)%'
 
 services:
     _defaults:
@@ -13,21 +14,40 @@ services:
             - '../src/Infrastructure/Entity/'
             - '../src/Kernel.php'
 
-    # Domain Services
+    # Redis Client
+    Predis\Client:
+        arguments:
+            - '%redis.url%'
+
+    # Domain Services - Interface Bindings
     App\Domain\Repository\ProductPriceRepositoryInterface:
-        alias: App\Infrastructure\Repository\DoctrineProductPriceRepository
+        alias: App\Infrastructure\Persistence\DoctrineProductPriceRepository
+
+    App\Domain\Repository\ApiSourceRepositoryInterface:
+        alias: App\Infrastructure\Persistence\ApiSourceRepository
+
+    App\Domain\Service\CacheServiceInterface:
+        alias: App\Infrastructure\Cache\PriceCache
+
+    App\Domain\Service\CacheKeyProductGeneratorInterface:
+        alias: App\Application\Service\CacheKeyProductGenerator
 
     # Infrastructure Services
-    App\Infrastructure\Service\ApiOnePriceFetcher:
-        tags: ['app.price_fetcher']
-
-    App\Infrastructure\Service\ApiTwoPriceFetcher:
-        tags: ['app.price_fetcher']
+    App\Infrastructure\Cache\PriceCache:
+        arguments:
+            $keyPrefix: 'price_cache:'
+            $defaultTtl: 3600
 
     # Application Services
-    App\Application\Service\PriceAggregationService:
+    App\Application\Service\CacheKeyProductGenerator:
         arguments:
-            $priceFetchers: !tagged_iterator app.price_fetcher
+            $keyPrefix: 'price_cache:'
+
+    App\Application\Service\RetryService:
+        arguments:
+            $maxRetries: 3
+            $baseDelayMs: 1000
+            $backoffMultiplier: 2.0
 
     # UI Services
     App\UI\Security\ApiKeyAuthenticator:
